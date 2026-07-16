@@ -1,82 +1,118 @@
 const raw = JSON.parse(document.getElementById('post-data').textContent);
 
-// scrape date from most recent postedAt-independent: use max time in data as proxy, or fixed
 const scrapeDate = "__SCRAPE_DATE__";
 document.getElementById('scrapeDate').textContent = scrapeDate;
 document.getElementById('totalCount').textContent = raw.length;
 document.getElementById('allCount').textContent = raw.length;
 
-// Populate area multi-select
+const bhkOrder = ['1RK','2RK','1BHK','2BHK','3BHK','4BHK','5BHK'];
+
+function bhkSortKey(a){
+  const i = bhkOrder.indexOf(a);
+  return i === -1 ? 999 : i;
+}
+
+/* ---------- Generic multi-select (used for Area, BHK, Gender) ---------- */
+function makeMultiSelect({ inputId, dropdownId, chipsId, counts, sortFn, onChange }) {
+  const input = document.getElementById(inputId);
+  const dropdown = document.getElementById(dropdownId);
+  const chips = document.getElementById(chipsId);
+  const selected = new Set();
+  const allValues = Object.keys(counts).sort(sortFn);
+
+  function renderDropdown(){
+    const q = input.value.trim().toLowerCase();
+    const list = allValues.filter(v => v.toLowerCase().includes(q));
+    dropdown.innerHTML = list.map(v => `
+      <label>
+        <input type="checkbox" data-val="${v}" ${selected.has(v) ? 'checked' : ''}>
+        ${v}
+        <span class="count">${counts[v]}</span>
+      </label>
+    `).join('') || '<div style="padding:10px; font-size:12px; color:var(--ink-soft);">No matches</div>';
+
+    dropdown.querySelectorAll('input[type=checkbox]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const v = cb.getAttribute('data-val');
+        if (cb.checked) selected.add(v); else selected.delete(v);
+        renderChips();
+        onChange();
+      });
+    });
+  }
+
+  function renderChips(){
+    chips.innerHTML = [...selected].map(v => `
+      <span class="area-chip">${v}<button data-val="${v}" title="Remove">×</button></span>
+    `).join('');
+    chips.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selected.delete(btn.getAttribute('data-val'));
+        renderChips();
+        renderDropdown();
+        onChange();
+      });
+    });
+  }
+
+  input.addEventListener('focus', () => { dropdown.classList.add('open'); renderDropdown(); });
+  input.addEventListener('input', renderDropdown);
+
+  renderDropdown();
+
+  return {
+    selected,
+    clear(){ selected.clear(); input.value = ''; renderChips(); renderDropdown(); },
+  };
+}
+
+// Close any open dropdown when clicking elsewhere on the page
+document.addEventListener('click', (e) => {
+  document.querySelectorAll('.area-dropdown.open').forEach(dd => {
+    const triggerInput = dd.previousElementSibling;
+    if (!e.target.closest('.area-dropdown') && e.target !== triggerInput){
+      dd.classList.remove('open');
+    }
+  });
+});
+
+// --- Area counts ---
 const areaCounts = {};
 raw.forEach(r => (r.areas || []).forEach(a => { areaCounts[a] = (areaCounts[a] || 0) + 1; }));
-const allAreas = Object.keys(areaCounts).sort((a,b) => areaCounts[b] - areaCounts[a] || a.localeCompare(b));
-let selectedAreas = new Set();
 
-const areaDropdown = document.getElementById('area-dropdown');
-const areaSearch = document.getElementById('f-area-search');
-const areaChips = document.getElementById('area-chips');
+// --- BHK counts ---
+const bhkCounts = {};
+raw.forEach(r => { if (r.bhk) bhkCounts[r.bhk] = (bhkCounts[r.bhk] || 0) + 1; });
 
-function renderAreaDropdown(){
-  const q = areaSearch.value.trim().toLowerCase();
-  const list = allAreas.filter(a => a.toLowerCase().includes(q));
-  areaDropdown.innerHTML = list.map(a => `
-    <label>
-      <input type="checkbox" data-area="${a}" ${selectedAreas.has(a) ? 'checked' : ''}>
-      ${a}
-      <span class="count">${areaCounts[a]}</span>
-    </label>
-  `).join('') || '<div style="padding:10px; font-size:12px; color:var(--ink-soft);">No matching areas</div>';
-
-  areaDropdown.querySelectorAll('input[type=checkbox]').forEach(cb => {
-    cb.addEventListener('change', () => {
-      const a = cb.getAttribute('data-area');
-      if (cb.checked) selectedAreas.add(a); else selectedAreas.delete(a);
-      renderAreaChips();
-      render();
-    });
-  });
-}
-
-function renderAreaChips(){
-  areaChips.innerHTML = [...selectedAreas].map(a => `
-    <span class="area-chip">${a}<button data-area="${a}" title="Remove">×</button></span>
-  `).join('');
-  areaChips.querySelectorAll('button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      selectedAreas.delete(btn.getAttribute('data-area'));
-      renderAreaChips();
-      renderAreaDropdown();
-      render();
-    });
-  });
-}
-
-areaSearch.addEventListener('focus', () => { areaDropdown.classList.add('open'); renderAreaDropdown(); });
-areaSearch.addEventListener('input', renderAreaDropdown);
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.area-dropdown') && e.target !== areaSearch){
-    areaDropdown.classList.remove('open');
-  }
-});
-renderAreaDropdown();
-
-// Populate BHK filter
-const bhkOrder = ['1RK','2RK','1BHK','2BHK','3BHK','4BHK','5BHK'];
-const bhks = [...new Set(raw.map(r => r.bhk).filter(Boolean))]
-  .sort((a,b) => {
-    const ia = bhkOrder.indexOf(a), ib = bhkOrder.indexOf(b);
-    if (ia === -1 && ib === -1) return a.localeCompare(b);
-    if (ia === -1) return 1;
-    if (ib === -1) return -1;
-    return ia - ib;
-  });
-const bhkSel = document.getElementById('f-bhk');
-bhks.forEach(b => {
-  const o = document.createElement('option');
-  o.value = b; o.textContent = b;
-  bhkSel.appendChild(o);
+// --- Gender counts (include "Not mentioned" as an explicit option) ---
+const genderCounts = {};
+raw.forEach(r => {
+  const g = r.gender || 'Not mentioned';
+  genderCounts[g] = (genderCounts[g] || 0) + 1;
 });
 
+const areaMS = makeMultiSelect({
+  inputId: 'f-area-search', dropdownId: 'area-dropdown', chipsId: 'area-chips',
+  counts: areaCounts,
+  sortFn: (a,b) => areaCounts[b] - areaCounts[a] || a.localeCompare(b),
+  onChange: render,
+});
+
+const bhkMS = makeMultiSelect({
+  inputId: 'f-bhk-search', dropdownId: 'bhk-dropdown', chipsId: 'bhk-chips',
+  counts: bhkCounts,
+  sortFn: (a,b) => bhkSortKey(a) - bhkSortKey(b),
+  onChange: render,
+});
+
+const genderMS = makeMultiSelect({
+  inputId: 'f-gender-search', dropdownId: 'gender-dropdown', chipsId: 'gender-chips',
+  counts: genderCounts,
+  sortFn: (a,b) => genderCounts[b] - genderCounts[a],
+  onChange: render,
+});
+
+/* ---------- Budget slider ---------- */
 const budgetInput = document.getElementById('f-budget');
 const budgetVal = document.getElementById('f-budget-val');
 budgetInput.addEventListener('input', () => {
@@ -84,6 +120,7 @@ budgetInput.addEventListener('input', () => {
   render();
 });
 
+/* ---------- Table rendering ---------- */
 let sortKey = 'postedAt';
 let sortDir = 'desc';
 
@@ -105,8 +142,6 @@ function timeAgo(iso){
 }
 
 function applyFilters(){
-  const bhk = document.getElementById('f-bhk').value;
-  const gender = document.getElementById('f-gender').value;
   const maxBudget = +budgetInput.value;
   const moveinQ = document.getElementById('f-movein').value.trim().toLowerCase();
   const showListing = document.getElementById('f-listing').checked;
@@ -114,15 +149,16 @@ function applyFilters(){
   const showUnclear = document.getElementById('f-unclear').checked;
 
   return raw.filter(r => {
-    if (selectedAreas.size > 0){
+    if (areaMS.selected.size > 0){
       const rAreas = r.areas || [];
-      const hasMatch = rAreas.some(a => selectedAreas.has(a));
-      if (!hasMatch) return false;
+      if (!rAreas.some(a => areaMS.selected.has(a))) return false;
     }
-    if (bhk && r.bhk !== bhk) return false;
-    if (gender){
-      if (gender === '__none' && r.gender) return false;
-      if (gender !== '__none' && r.gender !== gender) return false;
+    if (bhkMS.selected.size > 0){
+      if (!r.bhk || !bhkMS.selected.has(r.bhk)) return false;
+    }
+    if (genderMS.selected.size > 0){
+      const g = r.gender || 'Not mentioned';
+      if (!genderMS.selected.has(g)) return false;
     }
     if (maxBudget < 100000){
       if (r.rent && r.rent > maxBudget) return false;
@@ -215,24 +251,22 @@ function render(){
         sortDir = sortDir === 'asc' ? 'desc' : 'asc';
       } else {
         sortKey = key;
-        sortDir = key === 'rent' ? 'desc' : 'desc';
+        sortDir = 'desc';
       }
       render();
     });
   });
 }
 
-['f-area','f-bhk','f-gender','f-listing','f-seeking','f-unclear'].forEach(id => {
+['f-listing','f-seeking','f-unclear'].forEach(id => {
   document.getElementById(id).addEventListener('change', render);
 });
 document.getElementById('f-movein').addEventListener('input', render);
+
 document.getElementById('reset-btn').addEventListener('click', () => {
-  selectedAreas.clear();
-  areaSearch.value = '';
-  renderAreaChips();
-  renderAreaDropdown();
-  document.getElementById('f-bhk').value = '';
-  document.getElementById('f-gender').value = '';
+  areaMS.clear();
+  bhkMS.clear();
+  genderMS.clear();
   budgetInput.value = 100000;
   budgetVal.textContent = 'Any';
   document.getElementById('f-movein').value = '';
