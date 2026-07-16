@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bangalore Flat Ledger</title>
+<style>
+  :root{
+    --paper: #f2ede1;
+    --paper-line: #d8cfb8;
+    --ink: #23261f;
+    --ink-soft: #55584c;
+    --stamp: #a8412f;
+    --stamp-soft: #a8412f1a;
+    --moss: #4c5c3c;
+    --moss-soft: #4c5c3c1a;
+    --gold: #b8893a;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 27px, var(--paper-line) 27px, var(--paper-line) 28px);
+    color:var(--ink);
+    font-family: 'Iowan Old Style','Georgia', serif;
+    min-height:100vh;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:36px 24px 80px;}
+
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    border-bottom:3px solid var(--ink);
+    padding-bottom:14px;
+    margin-bottom:6px;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .masthead h1{
+    font-family: 'Big Caslon', 'Iowan Old Style', Georgia, serif;
+    font-size:44px;
+    letter-spacing:0.5px;
+    margin:0;
+    line-height:1;
+  }
+  .masthead .kicker{
+    font-family:'Courier New',monospace;
+    text-transform:uppercase;
+    letter-spacing:2.5px;
+    font-size:11px;
+    color:var(--stamp);
+    margin-bottom:6px;
+    display:block;
+  }
+  .masthead .sub{
+    font-size:14px;
+    color:var(--ink-soft);
+    margin-top:6px;
+    max-width:520px;
+  }
+  .meta-box{
+    font-family:'Courier New',monospace;
+    font-size:11px;
+    text-align:right;
+    color:var(--ink-soft);
+    line-height:1.6;
+  }
+  .meta-box b{color:var(--ink);}
+
+  .toolbar{
+    background:#fffdf8;
+    border:1px solid var(--paper-line);
+    box-shadow: 3px 3px 0 var(--paper-line);
+    padding:20px 22px;
+    margin:22px 0 26px;
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(150px,1fr));
+    gap:16px;
+    align-items:end;
+  }
+  .field label{
+    display:block;
+    font-family:'Courier New',monospace;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:1.3px;
+    color:var(--stamp);
+    margin-bottom:6px;
+  }
+  select, input[type=text]{
+    width:100%;
+    font-family:'Iowan Old Style', Georgia, serif;
+    font-size:14.5px;
+    padding:8px 9px;
+    border:1px solid var(--ink);
+    background:var(--paper);
+    color:var(--ink);
+  }
+  select:focus, input:focus{outline:2px solid var(--stamp); outline-offset:1px;}
+  .range-row{display:flex; align-items:center; gap:8px; font-family:'Courier New',monospace; font-size:12px;}
+  input[type=range]{width:100%; accent-color:var(--stamp);}
+  .field.checks{display:flex; gap:14px; flex-wrap:wrap; align-items:center;}
+  .field.checks label{
+    display:flex; align-items:center; gap:6px;
+    text-transform:none; letter-spacing:0; font-size:13px; color:var(--ink);
+    font-family:'Iowan Old Style',Georgia,serif;
+  }
+  .field.checks input{accent-color:var(--moss); width:15px; height:15px;}
+  .area-dropdown{
+    position:absolute;
+    top:64px;
+    left:0;
+    z-index:20;
+    width:260px;
+    max-height:220px;
+    overflow-y:auto;
+    background:#fffdf8;
+    border:1px solid var(--ink);
+    box-shadow:3px 3px 0 var(--paper-line);
+    display:none;
+  }
+  .area-dropdown.open{display:block;}
+  .area-dropdown label{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 10px;
+    font-size:13px;
+    text-transform:none;
+    letter-spacing:0;
+    color:var(--ink);
+    font-family:'Iowan Old Style',Georgia,serif;
+    cursor:pointer;
+  }
+  .area-dropdown label:hover{background:var(--stamp-soft);}
+  .area-dropdown input{accent-color:var(--moss); width:14px; height:14px;}
+  .area-dropdown .count{margin-left:auto; font-family:'Courier New',monospace; font-size:10.5px; color:var(--ink-soft);}
+  .area-chips{display:flex; flex-wrap:wrap; gap:5px; margin-top:6px;}
+  .area-chip{
+    font-family:'Courier New',monospace;
+    font-size:10.5px;
+    background:var(--moss);
+    color:#fffdf8;
+    padding:3px 6px 3px 8px;
+    display:flex;
+    align-items:center;
+    gap:5px;
+  }
+  .area-chip button{
+    background:none; border:none; color:#fffdf8; cursor:pointer;
+    font-size:12px; line-height:1; padding:0;
+  }
+  .reset-btn{
+    font-family:'Courier New',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:1.2px;
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    padding:10px 14px;
+    cursor:pointer;
+  }
+  .reset-btn:hover{background:var(--stamp);}
+
+  .count-line{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-family:'Courier New',monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-bottom:10px;
+    border-bottom:1px dashed var(--paper-line);
+    padding-bottom:8px;
+  }
+  .count-line b{color:var(--ink); font-size:15px;}
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    background:#fffdf8;
+  }
+  thead th{
+    text-align:left;
+    font-family:'Courier New',monospace;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:1.1px;
+    color:#fffdf8;
+    background:var(--ink);
+    padding:10px 12px;
+    cursor:pointer;
+    user-select:none;
+    white-space:nowrap;
+  }
+  thead th:hover{background:var(--stamp);}
+  thead th .arrow{opacity:0.5; margin-left:3px;}
+  tbody tr{border-bottom:1px solid var(--paper-line);}
+  tbody tr:hover{background:var(--stamp-soft);}
+  tbody td{
+    padding:11px 12px;
+    font-size:13.5px;
+    vertical-align:top;
+  }
+  .tag{
+    display:inline-block;
+    font-family:'Courier New',monospace;
+    font-size:10px;
+    letter-spacing:0.5px;
+    padding:2px 7px;
+    border:1px solid currentColor;
+  }
+  .tag.listing{color:var(--moss);}
+  .tag.seeking{color:var(--gold);}
+  .tag.unclear{color:var(--ink-soft);}
+  .rent{font-family:'Courier New',monospace; font-weight:bold;}
+  .rent.na{color:var(--ink-soft); font-weight:normal; font-style:italic;}
+  .area-cell{font-weight:600;}
+  .snippet{color:var(--ink-soft); font-size:12.5px; max-width:340px; display:block;}
+  .postlink{
+    font-family:'Courier New',monospace;
+    font-size:11px;
+    color:var(--stamp);
+    text-decoration:none;
+    border-bottom:1px solid var(--stamp);
+    white-space:nowrap;
+  }
+  .postlink:hover{background:var(--stamp); color:#fffdf8;}
+  .group-cell{font-size:11.5px; color:var(--ink-soft); font-family:'Courier New',monospace;}
+
+  .empty-state{
+    text-align:center;
+    padding:60px 20px;
+    color:var(--ink-soft);
+    font-style:italic;
+  }
+
+  footer{
+    margin-top:30px;
+    padding-top:16px;
+    border-top:1px solid var(--paper-line);
+    font-family:'Courier New',monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    line-height:1.7;
+  }
+
+  @media (max-width:700px){
+    .masthead h1{font-size:30px;}
+    header{flex-direction:column; align-items:flex-start;}
+    .meta-box{text-align:left;}
+    table, thead, tbody, th, td, tr{display:block;}
+    thead{display:none;}
+    tbody tr{padding:12px 0; border-bottom:2px solid var(--ink);}
+    tbody td{padding:3px 0; display:flex; gap:8px;}
+    tbody td::before{content: attr(data-label); font-family:'Courier New',monospace; font-size:10px; text-transform:uppercase; color:var(--stamp); min-width:80px; flex-shrink:0;}
+    .snippet{max-width:100%;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="masthead">
+      <span class="kicker">Flat &amp; Flatmate Classifieds</span>
+      <h1>The Bangalore Ledger</h1>
+      <div class="sub">Pulled from public flat-hunting groups across the city. Filter below — every row links back to the original post so you can verify and DM directly.</div>
+    </div>
+    <div class="meta-box">
+      <div><b id="scrapeDate">—</b> scrape date</div>
+      <div><b id="totalCount">0</b> posts indexed</div>
+      <div><b>4</b> groups tracked</div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="field" style="position:relative;">
+      <label for="f-area-search">Area (multi-select)</label>
+      <input type="text" id="f-area-search" placeholder="Search &amp; check areas...">
+      <div id="area-dropdown" class="area-dropdown"></div>
+      <div id="area-chips" class="area-chips"></div>
+    </div>
+    <div class="field">
+      <label for="f-bhk">BHK / RK</label>
+      <select id="f-bhk"><option value="">Any</option></select>
+    </div>
+    <div class="field">
+      <label for="f-gender">Gender pref.</label>
+      <select id="f-gender">
+        <option value="">Any</option>
+        <option value="Female">Female</option>
+        <option value="Male">Male</option>
+        <option value="Co-ed/Any">Co-ed / Any</option>
+        <option value="__none">Not mentioned</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="f-budget">Max rent (₹/mo)</label>
+      <div class="range-row">
+        <input type="range" id="f-budget" min="3000" max="100000" step="1000" value="100000">
+        <span id="f-budget-val" style="min-width:56px;">Any</span>
+      </div>
+    </div>
+    <div class="field">
+      <label for="f-movein">Move-in mentions</label>
+      <input type="text" id="f-movein" placeholder="e.g. august, asap...">
+    </div>
+    <div class="field checks">
+      <label><input type="checkbox" id="f-listing" checked> Listings</label>
+      <label><input type="checkbox" id="f-seeking" checked> Seeking</label>
+      <label><input type="checkbox" id="f-unclear"> Unclear</label>
+    </div>
+    <div class="field">
+      <button class="reset-btn" id="reset-btn">Reset filters</button>
+    </div>
+  </div>
+
+  <div class="count-line">
+    <span>Showing <b id="shownCount">0</b> of <b id="allCount">0</b> posts</span>
+    <span id="sortLabel">sorted by newest</span>
+  </div>
+
+  <div id="tableHolder"></div>
+
+  <footer>
+    Fields (area, BHK, rent, gender, move-in date) are parsed automatically from post text and may be
+    incomplete or slightly off — always confirm against the linked post before reaching out.
+    Data covers public groups only, scraped once on the date above (not live-updating).
+    Built for personal flat-hunting use.
+  </footer>
+
+</div>
+
+<script id="post-data" type="application/json">__DATA__</script>
+<script>
+__SCRIPT__
+</script>
+</body>
+</html>
