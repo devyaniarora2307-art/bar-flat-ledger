@@ -76,10 +76,11 @@
     padding:20px 22px;
     margin:22px 0 26px;
     display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(150px,1fr));
-    gap:16px;
-    align-items:end;
+    grid-template-columns:repeat(auto-fit, minmax(180px,1fr));
+    gap:20px 16px;
+    align-items:start;
   }
+  .field{display:flex; flex-direction:column;}
   .field label{
     display:block;
     font-family:'Courier New',monospace;
@@ -282,19 +283,17 @@
       <div id="area-dropdown" class="area-dropdown"></div>
       <div id="area-chips" class="area-chips"></div>
     </div>
-    <div class="field">
-      <label for="f-bhk">BHK / RK</label>
-      <select id="f-bhk"><option value="">Any</option></select>
+    <div class="field" style="position:relative;">
+      <label for="f-bhk-search">BHK / RK (multi-select)</label>
+      <input type="text" id="f-bhk-search" placeholder="Search &amp; check...">
+      <div id="bhk-dropdown" class="area-dropdown"></div>
+      <div id="bhk-chips" class="area-chips"></div>
     </div>
-    <div class="field">
-      <label for="f-gender">Gender pref.</label>
-      <select id="f-gender">
-        <option value="">Any</option>
-        <option value="Female">Female</option>
-        <option value="Male">Male</option>
-        <option value="Co-ed/Any">Co-ed / Any</option>
-        <option value="__none">Not mentioned</option>
-      </select>
+    <div class="field" style="position:relative;">
+      <label for="f-gender-search">Gender pref. (multi-select)</label>
+      <input type="text" id="f-gender-search" placeholder="Search &amp; check...">
+      <div id="gender-dropdown" class="area-dropdown"></div>
+      <div id="gender-chips" class="area-chips"></div>
     </div>
     <div class="field">
       <label for="f-budget">Max rent (₹/mo)</label>
@@ -308,11 +307,15 @@
       <input type="text" id="f-movein" placeholder="e.g. august, asap...">
     </div>
     <div class="field checks">
-      <label><input type="checkbox" id="f-listing" checked> Listings</label>
-      <label><input type="checkbox" id="f-seeking" checked> Seeking</label>
-      <label><input type="checkbox" id="f-unclear"> Unclear</label>
+      <label style="text-transform:uppercase; font-family:'Courier New',monospace; font-size:10.5px; letter-spacing:1.3px; color:var(--stamp); margin-bottom:6px; display:block;">Show</label>
+      <div style="display:flex; gap:14px; flex-wrap:wrap; align-items:center;">
+        <label><input type="checkbox" id="f-listing" checked> Listings</label>
+        <label><input type="checkbox" id="f-seeking" checked> Seeking</label>
+        <label><input type="checkbox" id="f-unclear"> Unclear</label>
+      </div>
     </div>
     <div class="field">
+      <label style="visibility:hidden;">Reset</label>
       <button class="reset-btn" id="reset-btn">Reset filters</button>
     </div>
   </div>
