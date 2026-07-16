@@ -1,0 +1,50 @@
+name: Daily flat-ledger update
+
+on:
+  schedule:
+    # 07:00 IST = 01:30 UTC. Edit the two numbers below to change the time.
+    - cron: "30 1 * * *"
+  workflow_dispatch: {}   # lets you also trigger it manually from the Actions tab
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run scrape + merge + build
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+        run: python merge_and_build.py
+
+      - name: Commit updated data + site
+        run: |
+          git config user.name "flat-ledger-bot"
+          git config user.email "actions@github.com"
+          git add data.json index.html
+          git diff --cached --quiet && echo "No changes" || git commit -m "Daily update $(date -u +%Y-%m-%d)"
+          git push
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
